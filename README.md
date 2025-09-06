@@ -1,5 +1,7 @@
 # 基于html开发的在线网址导航
 
+[English Doc](./Readme-en.md)
+
 ## 部署步骤
 
 将全部文件复制到服务器，入口文件是index.html
@@ -24,3 +26,5 @@
 - https://web-a55.pages.dev/
 
 - https://hrzhanghuan.com
+
+
