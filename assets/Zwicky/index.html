@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zwicky形态分析工具 - V1.8.3</title>
+    <!--
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    -->
+    <script src="jquery-3.6.0.min.js"></script>
+    <script src="xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-dark: #34527d;
+            --secondary: #6d9eeb;
+            --accent: #ff9800;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+            --gray: #6c757d;
+            --light-gray: #e9ecef;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e7f1 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            position: relative;
+        }
+        
+        h1 {
+            color: var(--primary-dark);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h1:after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        
+        .subtitle {
+            color: var(--gray);
+            font-size: 1.1rem;
+            margin-top: 15px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .github-banner {
+            position: absolute;
+            top: 0;
+            right: 0;
+            z-index: 100;
+        }
+        
+        /* Progress Steps */
+        .progress-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        
+        .progress-bar {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--light-gray);
+            z-index: 1;
+        }
+        
+        .progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: var(--accent);
+            transition: var(--transition);
+            width: 0%;
+        }
+        
+        .step-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            width: 20%;
+            cursor: pointer;
+        }
+        
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--light-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--gray);
+            transition: var(--transition);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .step-label {
+            margin-top: 10px;
+            text-align: center;
+            color: var(--gray);
+            font-size: 0.9rem;
+            max-width: 120px;
+        }
+        
+        .step-indicator.active .step-circle {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .step-indicator.completed .step-circle {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+        
+        /* Step Containers */
+        .step-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .step-container:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
+            background: var(--primary);
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .step-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .step-title {
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+        }
+        
+        .step-description {
+            color: var(--gray);
+            margin-bottom: 20px;
+            padding-left: 50px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ced4da;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--secondary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(109, 158, 235, 0.2);
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .input-row input {
+            flex: 1;
+        }
+        
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            background: var(--primary);
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        
+        button.secondary:hover {
+            background: var(--light);
+        }
+        
+        button.success {
+            background: var(--success);
+        }
+        
+        button.danger {
+            background: var(--danger);
+        }
+        
+        button.warning {
+            background: var(--accent);
+        }
+        
+        button i {
+            font-size: 1.1rem;
+        }
+        
+        .example-links {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .example-links a {
+            padding: 8px 15px;
+            background: var(--light);
+            border-radius: var(--border-radius);
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            border: 1px solid var(--light-gray);
+            transition: var(--transition);
+        }
+        
+        .example-links a:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e9f7fe;
+        }
+        
+        .solutioncut {
+            background-color: #fffde7;
+        }
+        
+        .solutioncutreason {
+            font-style: italic;
+            color: var(--gray);
+        }
+        
+        /* Results section */
+        .results-section {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        #nsolutions {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--success);
+            background: #e8f5e9;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+        
+        /* Toggle switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--success);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        /* Export button */
+        .export-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .export-info {
+            background: var(--light);
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            font-size: 0.9rem;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* 优化后的导航控件 */
+        .category-navigation {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            flex-wrap: nowrap;
+            overflow-x: auto;
+        }
+        
+        .nav-controls {
+            display: flex;
+            gap: 5px;
+            flex-shrink: 0;
+        }
+        
+        .nav-controls button {
+            padding: 8px 12px;
+        }
+        
+        .category-selectors {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            min-width: 0;
+        }
+        
+        .category-selectors select {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        /* 当前行高亮 */
+        .current-row {
+            background-color: rgba(109, 158, 235, 0.1) !important;
+            outline: 2px solid var(--secondary);
+        }
+        
+        /* 操作提示 */
+        .hint {
+            background: #e8f4fd;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: var(--primary-dark);
+            border-left: 4px solid var(--secondary);
+        }
+        
+        /* 项目文件操作按钮 */
+        .file-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .input-row {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .progress-steps {
+                flex-wrap: wrap;
+            }
+            
+            .step-indicator {
+                width: 50%;
+                margin-bottom: 20px;
+            }
+            
+            .step-container {
+                padding: 20px;
+            }
+            
+            .step-description {
+                padding-left: 0;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .button-group button {
+                width: 100%;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .export-container {
+                flex-direction: column;
+            }
+            
+            .category-navigation {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .nav-controls {
+                justify-content: center;
+                margin-bottom: 10px;
+            }
+            
+            .category-selectors {
+                flex-direction: column;
+            }
+            
+            .file-actions {
+                flex-direction: column;
+            }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .step-container {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .highlight {
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.4);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(74, 111, 165, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(74, 111, 165, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 111, 165, 0); }
+        }
+        
+        /* Icons */
+        .icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        
+        .icon-add { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>'); }
+        .icon-clear { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'); }
+        .icon-share { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg>'); }
+        .icon-generate { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>'); }
+        .icon-export { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>'); }
+        .icon-save { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></svg>'); }
+        .icon-load { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>'); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Zwicky形态分析工具 - V1.8.3</h1>
+            <p class="subtitle">使用系统化的方法探索问题空间的所有可能解决方案，通过排除不兼容组合来缩小可行方案范围</p>
+            <a href="https://github.com/JohannesBuchner/zwicky-morphological-analysis/" class="github-banner">
+                <img style="border: 0;" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path fill='%234a6fa5' d='M50 1.25a48.75 48.75 0 0 0-15.4 95c2.5.45 3.4-1.1 3.4-2.45 0-1.2-.05-5.3-.05-9.65-12.5 2.7-15.15-5.3-15.15-5.3-2.3-5.7-5.5-7.2-5.5-7.2-4.5-3.05.35-3 .35-3 5 .35 7.65 5.1 7.65 5.1 4.4 7.55 11.5 5.35 14.3 4.1.45-3.2 1.7-5.35 3.1-6.55-10.85-1.25-22.25-5.4-22.25-24.05 0-5.3 1.9-9.65 5-13-0.5-1.25-2.15-6.3.5-13 0 0 4.1-1.3 13.4 5 4-1.1 8.15-1.65 12.35-1.65 4.2 0 8.35.55 12.35 1.65 9.25-6.3 13.35-5 13.35-5 2.65 6.7 1 11.75.5 13 3.1 3.35 5 7.7 5 13 0 18.75-11.5 22.8-22.45 24 1.75 1.5 3.35 4.5 3.35 9.05 0 6.55-.05 11.8-.05 13.4 0 1.35.9 2.95 3.4 2.45A48.75 48.75 0 0 0 50 1.25z'/></svg>" alt="GitHub仓库">
+            </a>
+            
+            <!-- 项目文件操作按钮 -->
+            <div class="file-actions">
+                <button type="button" id="saveProject" class="warning">
+                    <span class="icon icon-save"></span> 保存项目文件
+                </button>
+                <button type="button" id="loadProject" class="warning">
+                    <span class="icon icon-load"></span> 加载项目文件
+                </button>
+                <input type="file" id="projectFile" accept=".zma" style="display: none;">
+            </div>
+        </header>
+        
+        <div class="progress-steps">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="step-indicator active" data-step="0">
+                <div class="step-circle">0</div>
+                <div class="step-label">问题背景</div>
+            </div>
+            <div class="step-indicator" data-step="1">
+                <div class="step-circle">1</div>
+                <div class="step-label">定义问题空间</div>
+            </div>
+            <div class="step-indicator" data-step="2">
+                <div class="step-circle">2</div>
+                <div class="step-label">排除组合</div>
+            </div>
+            <div class="step-indicator" data-step="3">
+                <div class="step-circle">3</div>
+                <div class="step-label">复杂排除</div>
+            </div>
+            <div class="step-indicator" data-step="4">
+                <div class="step-circle">4</div>
+                <div class="step-label">探索解决方案</div>
+            </div>
+        </div>
+        
+        <!-- 新增的第0步：问题背景描述 -->
+        <div class="step-container" id="step0">
+            <div class="step-header">
+                <div class="step-number">0</div>
+                <h2 class="step-title">问题背景描述</h2>
+            </div>
+            <p class="step-description">
+                在此步骤中，请描述您要解决的问题背景、目标和约束条件。明确的问题描述将有助于后续的分析过程。
+            </p>
+            
+            <div class="form-group">
+                <label for="problemTitle">问题标题</label>
+                <input type="text" id="problemTitle" placeholder="请输入问题标题">
+                
+                <label for="problemDescription">问题详细描述</label>
+                <textarea id="problemDescription" rows="6" placeholder="请详细描述您要解决的问题，包括背景信息、目标和约束条件"></textarea>
+                
+            </div>
+            
+            <div class="button-group">
+        			<button type="button" id="btnClearProblem" class="danger">
+            	<span class="icon icon-clear"></span> 清空问题描述
+        			</button>
+    				</div>
+        </div>
+        
+        <div class="step-container" id="step1">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h2 class="step-title">定义问题空间</h2>
+            </div>
+            <p class="step-description">
+                在形态分析中，首先需要明确问题的各个维度。这些维度之间可以有部分重叠。
+                任何不可能的维度组合将在下一步中被排除。
+            </p>
+            
+            <div class="hint">
+                <strong>操作提示：</strong> 
+                1. 点击表格中的行可将其设为当前行
+                2. 使用下方"删除当前行"按钮删除选中的行
+                3. 至少保留一个类别
+            </div>
+            
+            <div class="form-group">
+                <label>插入类别名称和允许的值（用空格分隔）</label>
+                <div class="example-links">
+                    <a id="clear" href="#">清除</a>
+                    <a id="example1" href="#">加载示例1</a>
+                    <a id="example2" href="#">加载示例2</a>
+                    <a id="example3" href="#">加载视频示例</a>
+                </div>
+                
+                <table id="blacklistgrid">
+                    <tr id="Row1">
+                        <th>类别名称</th>
+                        <th>值（空格分隔）</th>
+                    </tr>
+                    <tr id="Row2">
+                        <th><input placeholder="新类别"/></th>
+                        <td><input placeholder="值1 值2 值3" /></td>
+                    </tr>
+                    <tr id="Row3">
+                        <th><input placeholder="新类别"/></th>
+                        <td><input placeholder="值1 值2 值3"/></td>
+                    </tr>
+                    <tr id="Row4">
+                        <th><input placeholder="新类别"/></th>
+                        <td><input placeholder="值1 值2 值3"/></td>
+                    </tr>
+                    <tr id="Row5">
+                        <th><input placeholder="新类别"/></th>
+                        <td><input placeholder="值1 值2 值3"/></td>
+                    </tr>
+                    <tr id="Row6">
+                        <th><input placeholder="新类别"/></th>
+                        <td><input placeholder="值1 值2 值3"/></td>
+                    </tr>
+                </table>
+                
+                <div class="button-group">
+                    <button type="button" id="btnAdd">
+                        <span class="icon icon-add"></span> 添加更多行
+                    </button>
+                    <button type="button" id="btnDelete" class="danger">
+                        <span class="icon icon-clear"></span> 删除当前行
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="step-container" id="step2">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <h2 class="step-title">排除选项组合</h2>
+            </div>
+            <p class="step-description">
+                在此步骤中，可以考虑两两组合并排除不可能的组合。
+                对于每种情况，请提供排除原因作为注释。
+            </p>
+            <div class="button-group">
+                <button type="button" id="btnXLoad" accesskey="L">
+                    <span class="icon icon-add"></span> 加载指定类别
+                </button>
+                <span>(当类别改变需要点击按钮重新加载)</span>
+            </div>
+            
+            <!-- 优化后的导航控件 -->
+            <div class="category-navigation">
+                <div class="nav-controls">
+                    <button type="button" id="btnXPrev">&laquo; 上一个</button>
+                    <button type="button" id="btnXNext">下一个 &raquo;</button>
+                </div>
+                
+                <div class="category-selectors">
+                    <select id="CatA" name="CatA"></select>
+                    <select id="CatB" name="CatB"></select>
+                </div>
+            </div>
+            
+            <table id="combinations2">
+                <!-- 组合将动态生成 -->
+            </table>
+        </div>
+        
+        <div class="step-container" id="step3">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h2 class="step-title">复杂排除规则</h2>
+            </div>
+            <p class="step-description">
+                这里列出了所有排除规则。<br>
+                语法：每个类别的值用空格分隔，* 表示任意值。类别数量必须与值数量匹配。
+                原因在 | 后面给出。
+            </p>
+            
+            <div class="form-group">
+                <textarea id="excludes" name="excludes" rows="12" cols="100"></textarea>
+            </div>
+        </div>
+        
+        <div class="step-container" id="step4">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <h2 class="step-title">探索解决方案空间</h2>
+            </div>
+            <p class="step-description">
+                生成问题的所有可能解决方案。在这里探索问题，优先应用排除最多可能性的参数（排除规则）。
+                这对于构建系统化论证非常有帮助，同时确保考虑了所有可能性。
+            </p>
+            
+            <div class="button-group">
+                <button type="button" id="btnFinish" accesskey="X">
+                    <span class="icon icon-generate"></span> 探索解决方案
+                </button>
+                <button type="button" id="btnShareUrl">
+                    <span class="icon icon-share"></span> 生成分享链接
+                </button>
+                <input id="shareurl" placeholder="分享链接将在这里生成">
+            </div>
+            
+            <div class="results-section">
+                <div class="results-header">
+                    <h3>解决方案</h3>
+                    <span id='nsolutions'>0 个解决方案</span>
+                </div>
+                
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="showExclusions" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>显示排除选项</span>
+                </div>
+                
+                <table id="resulttable"></table>
+                
+                <div class="export-container">
+                    <button type="button" id="btnExport" class="success">
+                        <span class="icon icon-export"></span> 导出解决方案到 Excel
+                    </button>
+                    <div class="export-info">
+                        <span>导出当前显示的解决方案（不包含排除行）</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+        
+        // 更新进度条
+        function updateProgress(step) {
+            const percent = step * 25; // 现在有5步，每步25%
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+            
+            document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                if (index < step) {
+                    indicator.classList.add('completed');
+                    indicator.classList.remove('active');
+                } else if (index === step) {
+                    indicator.classList.add('active');
+                    indicator.classList.remove('completed');
+                } else {
+                    indicator.classList.remove('active', 'completed');
+                }
+            });
+            
+            // 高亮当前步骤
+            document.querySelectorAll('.step-container').forEach((container, index) => {
+                if (index === step) {
+                    container.classList.add('highlight');
+                    setTimeout(() => container.classList.remove('highlight'), 2000);
+                }
+            });
+        }
+        
+        // 滚动到指定步骤
+        function scrollToStep(step) {
+            const stepElement = document.getElementById(`step${step}`);
+            if (stepElement) {
+                stepElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                updateProgress(step);
+            }
+        }
+        
+        // 初始进度
+        updateProgress(0);
+        
+        // 为步骤指示器添加点击事件
+        document.querySelectorAll('.step-indicator').forEach(indicator => {
+            indicator.addEventListener('click', function() {
+                const step = parseInt(this.getAttribute('data-step'));
+                scrollToStep(step);
+            });
+        });
+        
+        // 当滚动到步骤时更新进度
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const step = parseInt(entry.target.id.replace('step', ''));
+                    updateProgress(step);
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        observer.observe(document.getElementById('step0'));
+        observer.observe(document.getElementById('step1'));
+        observer.observe(document.getElementById('step2'));
+        observer.observe(document.getElementById('step3'));
+        observer.observe(document.getElementById('step4'));
+        
+        // 添加行管理功能
+        $(document).ready(function() {
+            let currentRow = null;
+            
+            // 为表格行添加点击事件
+            $(document).on('click', '#blacklistgrid tr:not(:first)', function() {
+                // 清除之前的高亮
+                $('#blacklistgrid tr').removeClass('current-row');
+                
+                // 设置当前行高亮
+                $(this).addClass('current-row');
+                currentRow = $(this);
+            });
+            
+            // 为输入框添加焦点事件（备用）
+            $(document).on('focus', '#blacklistgrid input', function() {
+                const row = $(this).closest('tr');
+                $('#blacklistgrid tr').removeClass('current-row');
+                row.addClass('current-row');
+                currentRow = row;
+            });
+            
+            // 删除当前行功能
+            $('#btnDelete').click(function() {
+                if (!currentRow) {
+                    alert("请先点击要删除的行，然后再点击此按钮");
+                    return;
+                }
+                
+                // 检查是否至少保留一行（不包括表头）
+                if ($('#blacklistgrid tr:not(:first)').length <= 1) {
+                    alert("需要至少保留一个类别！");
+                    return;
+                }
+                
+                // 删除当前行
+                currentRow.remove();
+                currentRow = null;
+            });
+            
+            // 添加行功能
+            $('#btnAdd').click(function() {
+                const table = $('#blacklistgrid');
+                // 克隆最后一行
+                const newRow = table.find('tr:last').clone();
+                
+                // 清空输入内容
+                newRow.find('input').val('');
+                
+                // 添加到表格
+                table.append(newRow);
+                
+                // 设置新行为当前行
+                $('#blacklistgrid tr').removeClass('current-row');
+                newRow.addClass('current-row');
+                currentRow = newRow;
+            });
+            
+            // 保存问题描述
+            $('#btnSaveProblem').click(function() {
+                const title = $('#problemTitle').val();
+                const description = $('#problemDescription').val();
+                
+                if (!title && !description) {
+                    alert('请至少填写一个问题描述');
+                    return;
+                }
+                
+                showNotification('问题描述已保存');
+                scrollToStep(1); // 自动跳转到下一步
+            });
+            // 清空问题描述函数
+						$('#btnClearProblem').click(function() {
+						    $('#problemTitle').val('');
+						    $('#problemDescription').val('');
+						    showNotification('问题描述已清空');
+						});
+        });
+        
+        // 原始功能代码
+        var catnames = [];
+        var catvalues = [];
+
+        function listCombinations() {
+            var table = $('#combinations2');
+            table.find("tr").remove();
+            var dropdownA = $('#CatA');
+            var dropdownB = $('#CatB');
+            var indexA = dropdownA.prop("selectedIndex");
+            var indexB = dropdownB.prop("selectedIndex");
+            if (indexA == indexB)
+                return;
+            var valsA = catvalues[indexA];
+            var valsB = catvalues[indexB];
+            var html = "";
+            console.log("combining from options:" + valsA + " and " + valsB);
+            for(var i = 0; i < valsA.length; i++) {
+                for(var j = 0; j < valsB.length; j++) {
+                    html += "<tr><td>" + valsA[i] + "</td>"
+                    html += "<td>" + valsB[j] + "</td>"
+                    html += "<td><button type='button' onClick=\"disallowCombination(this," + indexA + ",'" + valsA[i] + "',"  + indexB + ",'" + valsB[j] + "');\">排除</button></td></tr>"
+                }
+            }
+            table.append(html)
+        }; 
+
+        function disallowCombination(button, i, valA, j, valB) {
+            console.log("removing:" + i + "/" + valA + " , " + j + "/" + valB);
+            var reason = window.prompt("组合: " + catnames[i] + "=" + valA + " 和 " + catnames[j] + "=" + valB + " 被排除，原因: ");
+            if (reason) {
+                var excludes = $('#excludes');
+                var line = "";
+                for(var k = 0; k < catnames.length; k++) {
+                    if (k == i) {
+                        line += " " + valA;
+                    }
+                    else if (k == j) {
+                        line += " " + valB;
+                    }
+                    else {
+                        line += " *";
+                    }
+                }
+                console.log("trimming: " + line);
+                line = $.trim(line);
+                console.log("appending: " + line);
+                excludes.val(excludes.val() + line + " | " + reason + "\n");
+                console.log("setting button disallowed: " + button);
+                $(button).addClass("disallowed");
+            }
+        };
+
+        function appendSolution(resulttable, values) {
+            var html = "<tr>";
+            for(var i = 0; i < catnames.length; i++) {
+                html += "<td>" + values[i] + "</td>";
+            }
+            html += "</tr>";
+            resulttable.append(html);
+        }
+        function appendCutNote(resulttable, values, rule, reason) {
+            var html = "<tr class='solutioncut'>";
+            for(var i = 0; i < catnames.length; i++) {
+                html += "<td>" + values[i].join(" ") + "</td>";
+            }
+            html += "</tr>"
+            html += "<tr class='solutioncut solutioncutreason'><td colspan='" + catnames.length + "'>排除原因: " + reason + "</td></tr>";
+            resulttable.append(html);
+        }
+
+
+        function countCombinations(allowedvalues) {
+            // cartesian product for cardinality
+            var ncomb = 1;
+            for(var i = 0; i < allowedvalues.length; i++) {
+                ncomb *= allowedvalues[i].length;
+            }
+            return ncomb;
+        }
+
+        function has_options(allowedvalues, excludes, resultstable = undefined) {
+            // go through excludes
+            // if excludes matches allowedvalues with the relevant fields only having one option
+            // return empty allowedvalues
+            for(var i = 0; i < excludes.length; i++) {
+                var rule_line = excludes[i];
+                if ($.trim(rule_line) == "")
+                    continue;
+                if (rule_line.startsWith("#"))
+                    continue;
+                var parts = rule_line.split("|", 2);
+                var rule = $.trim(parts[0]).split(" ");
+                if (rule.length != allowedvalues.length) {
+                    console.log("invalid rule: '" + rule_line + "', because " +  rule.length + "!=" + allowedvalues.length);
+                    continue;
+                }
+                //console.log("checking rule: '" + rule_line + "'");
+                var reason = $.trim(parts[1]);
+                var rule_applies = true;
+                for(var j = 0; j < allowedvalues.length; j++) {
+                    if (rule[j] == "*")
+                        continue;
+                    if (allowedvalues[j].length > 1) {
+                        rule_applies = false;
+                        //console.log("rule does not apply yet, have other options");
+                        break;
+                    }
+                    if (allowedvalues[j][0] == rule[j]) {
+                        rule_applies = true;
+                    } else {
+                        rule_applies = false;
+                        //console.log("rule does not match");
+                        break;
+                    }
+                }
+                if (rule_applies) {
+                    if(resultstable) {
+                        appendCutNote(resultstable, allowedvalues, rule, reason);
+                    }
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function indexOfMin(arr) {
+            if (arr.length === 0) {
+                return -1;
+            }
+
+            var minValue = arr[0];
+            var minIndex = 0;
+
+            for (var i = 1; i < arr.length; i++) {
+                if (isNaN(minValue) || arr[i] < minValue) {
+                    minIndex = i;
+                    minValue = arr[i];
+                }
+            }
+
+            return minIndex;
+        }
+        function sum(arr){
+            var total = 0;
+            for(var i = 0; i < arr.length; i++) 
+                total += arr[i];
+            return total;
+        }
+
+        function recursiveGenerateSolutions(resulttable, allowedvalues, excludes, depth) {
+            var prefix = "  ".repeat(depth);
+            console.log(prefix + "  generating solutions@" + depth + ": " + allowedvalues.join(";"));
+            if(depth>100){
+                console.log("stopping recursion at level 100");
+                return;
+            }
+            var single_solution = true;
+            for(var i = 0; i < allowedvalues.length; i++) {
+                if (allowedvalues[i].length != 1) {
+                    single_solution = false;
+                    break;
+                }
+            }
+            if(single_solution) {
+                console.log(prefix + "  emitting solution");
+                appendSolution(resulttable, allowedvalues);
+                return;
+            }
+            // go through each category
+            // find the one with the strongest reduction in options
+            var noptions_list = [];
+            var noptions = [];
+            for(var i = 0; i < catnames.length; i++) {
+                var newallowedvalues = allowedvalues.slice();
+                var noptions_here = [];
+                for(var j = 0; j < allowedvalues[i].length; j++) {
+                    newallowedvalues[i] = [allowedvalues[i][j]];
+                    if (has_options(newallowedvalues, excludes))
+                        noptions_here.push(countCombinations(newallowedvalues));
+                    else
+                        noptions_here.push(0);
+                }
+                noptions_list.push(noptions_here);
+                if (allowedvalues[i].length == 1 || noptions_here == 0) {
+                    // already have only one option, cannot select here;
+                    noptions.push(NaN);
+                } else {
+                    noptions.push(sum(noptions_here));
+                }
+            }
+            console.log(prefix + "  number of options: " + noptions + ", or, in detail:" + noptions_list.join("|"));
+            // select the one with lowest number of remaining options
+            var cat_selected = indexOfMin(noptions);
+
+            // order the choices within that category by the number of possibilities
+            
+            //for(var i = 0; i < catnames.length; i++) {
+            console.log(prefix + "  selecting on " + cat_selected + ": "  + catnames[cat_selected]);
+            var options = allowedvalues[cat_selected];
+            var options_indices = [];
+            for(var j = 0; j < options.length; j++) {
+                //console.log(prefix + "    noptions of " + options[j] + ": " + noptions_list[cat_selected][j]);
+                options_indices.push(j);
+            }
+            options_indices.sort(
+                function(a,b) {
+                    var va = noptions_list[cat_selected][a];
+                    var vb = noptions_list[cat_selected][b];
+                    var r = va - vb;
+                    //console.log(prefix + "    comparing " + va + " and " + vb + "->" + r);
+                    return r;
+                }
+            );
+            for(var j = 0; j < options_indices.length; j++) {
+                var k = options_indices[j];
+                //console.log(prefix + "    ordered:" + k + " noptions of " + options[k] + ": " + noptions_list[cat_selected][k]);
+            }
+            var newallowedvalues = allowedvalues.slice();
+            for(var j = 0; j < options_indices.length; j++) {
+                var k = options_indices[j];
+                newallowedvalues[cat_selected] = [options[k]];
+                console.log(prefix + "  assuming: " + catnames[cat_selected] + "=" + options[k]);
+                if (has_options(newallowedvalues, excludes, resulttable)) {
+                    recursiveGenerateSolutions(resulttable, newallowedvalues, excludes, depth+1);
+                }
+            }
+            //}
+        }
+
+        function generateSolutions() {
+            var resulttable = $('#resulttable');
+            var ncol = catnames.length;
+            var excludes = $("#excludes").val().split("\n");
+            // clear result table
+            resulttable.find("tr").remove();
+            // fill result table
+            var html = "<tr>";
+            for(var i = 0; i < catnames.length; i++) {
+                html += "<th>" + catnames[i] + "</td>";
+            }
+            html += "</tr>"
+            resulttable.append(html);
+            console.log("generating solutions...");
+            recursiveGenerateSolutions(resulttable, catvalues, excludes, 0);
+            
+            // 更新解决方案计数
+            updateSolutionCount();
+            
+            // 初始时根据开关状态显示/隐藏排除项
+            toggleExclusions();
+        }
+        
+        // 切换排除选项的显示状态
+        function toggleExclusions() {
+            const show = $('#showExclusions').is(':checked');
+            if (show) {
+                $('.solutioncut').show();
+            } else {
+                $('.solutioncut').hide();
+            }
+            updateSolutionCount();
+        }
+        
+        // 更新解决方案计数
+        function updateSolutionCount() {
+            const solutionCount = $("#resulttable tr:not(.solutioncut)").length - 1; // 减去标题行
+            $("#nsolutions").html(solutionCount + " 个解决方案");
+        }
+        
+        // 导出解决方案到Excel
+        function exportToExcel() {
+            const table = document.getElementById('resulttable');
+            if (!table || table.rows.length <= 1) {
+                alert("没有解决方案可以导出！");
+                return;
+            }
+            
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            
+            // 创建数据数组（只包含解决方案，不包含排除行）
+            const data = [];
+            
+            // 添加表头
+            const headerRow = [];
+            for (let i = 0; i < catnames.length; i++) {
+                headerRow.push(catnames[i]);
+            }
+            data.push(headerRow);
+            
+            // 添加解决方案数据（跳过排除行）
+            const rows = table.rows;
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (row.classList.contains('solutioncut')) continue;
+                
+                const rowData = [];
+                const cells = row.cells;
+                for (let j = 0; j < cells.length; j++) {
+                    rowData.push(cells[j].innerText);
+                }
+                data.push(rowData);
+            }
+            
+            // 创建工作表
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // 将工作表添加到工作簿
+            XLSX.utils.book_append_sheet(wb, ws, "解决方案");
+            
+            // 导出Excel文件
+            XLSX.writeFile(wb, "zwicky_solutions.xlsx");
+            
+            // 显示导出成功消息
+            alert("解决方案已成功导出为Excel文件！");
+        }
+
+        function clear_inputs(fields) {
+            for(var i = 0; i < fields.length; i++) {
+                console.log("clearing " + fields[i]);
+                fields[i].value = "";
+            }
+        }
+
+        function decode_categories(categories) {
+            var table = $('#blacklistgrid');
+            var fields = table.find('input');
+            clear_inputs(fields);
+            for(var i = 0; i < categories.length; i++) {
+                var keyvals = categories[i].split(":");
+                if (keyvals.length != 2)
+                    continue;
+                var key = keyvals[0];
+                var vals = keyvals[1];
+                if (fields.length < i*2+2) {
+                    var first_row = $('#Row2');
+                    var newrow = first_row.clone();
+                    newrow.find("input").val("");
+                    newrow.appendTo('#blacklistgrid');
+                    Array.prototype.push.apply(fields, newrow.find("input"));
+                }
+                fields[i*2].value = key;
+                fields[i*2+1].value = vals;
+            }
+        }
+
+        function load_from_url() {
+            var hash = window.location.hash.substr(1);
+            console.log("loading data from url: " + hash);
+            var parts = hash.split("&");
+            for(var i = 0; i < parts.length; i++) {
+                var keyvals = parts[i].split("=");
+                if (keyvals.length != 2)
+                    continue;
+                var key = keyvals[0];
+                var val = decodeURIComponent(keyvals[1]);
+                if (key == "cats") {
+                    decode_categories(val.split(";"));
+                } else if (key == "excl") {
+                    var excludes = $('#excludes');
+                    excludes.val(val);
+                } else {
+                    console.log("unexpected argument:" + key);
+                }
+            }
+        }
+        function generateUrl() {
+            var excludes = $('#excludes');
+            var excludes_text = encodeURIComponent(excludes.val());
+            console.log("excludes encoded to:" + excludes_text);
+            var table = $('#blacklistgrid');
+            var fields = table.find('input');
+            var categories = []
+            for(var i = 0; i < fields.length; i+=2) {
+                var key = fields[i].value;
+                var vals = fields[i+1].value;
+                var keyvals = key + ":" + vals;
+                categories.push(keyvals);
+            }
+            var categories_text = encodeURIComponent(categories.join(";"));
+            console.log("categories:" + categories + " encoded to:" + categories_text);
+            var url = "#cats=" + categories_text + "&excl=" + excludes_text;
+            return url;
+        }
+        
+        // 保存项目文件
+        function saveProject() {
+            const projectData = {
+                problemTitle: $('#problemTitle').val(),
+                problemDescription: $('#problemDescription').val(),
+                categories: [],
+                excludes: $('#excludes').val()
+            };
+            
+            const table = $('#blacklistgrid');
+            const fields = table.find('input');
+            for(let i = 0; i < fields.length; i += 2) {
+                const key = fields[i].value;
+                const vals = fields[i+1].value;
+                
+                // 跳过空行
+                if (key.trim() === '' && vals.trim() === '') continue;
+                
+                projectData.categories.push({
+                    name: key,
+                    values: vals
+                });
+            }
+            
+            // 创建Blob对象
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: 'application/json' });
+            
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'zwicky_analysis_project.zma';
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+            
+            alert('项目已成功保存！');
+        }
+        
+        // 加载项目文件
+        function loadProject() {
+            document.getElementById('projectFile').click();
+        }
+        
+        // 处理文件选择 - 修复版本
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const projectData = JSON.parse(e.target.result);
+                    
+                    // 清空现有数据（只保留标题行）
+                    $('#blacklistgrid tr:not(#Row1)').remove();
+                    $('#excludes').val('');
+                    
+                    // 加载问题描述
+                    $('#problemTitle').val(projectData.problemTitle || '');
+                    $('#problemDescription').val(projectData.problemDescription || '');
+                    
+                    // 添加新类别行
+                    projectData.categories.forEach((category) => {
+                        // 创建新行
+                        const newRow = $('<tr>');
+                        newRow.append(
+                            $('<th>').append(
+                                $('<input>').val(category.name)
+                            )
+                        );
+                        newRow.append(
+                            $('<td>').append(
+                                $('<input>').val(category.values)
+                            )
+                        );
+                        $('#blacklistgrid').append(newRow);
+                    });
+                    
+                    // 添加排除规则
+                    $('#excludes').val(projectData.excludes || '');
+                    
+                    // 重新加载类别
+                    $('#btnXLoad').click();
+                    
+                    alert('项目已成功加载！');
+                    
+                    // 滚动到第一步
+                    scrollToStep(0);
+                    
+                } catch (error) {
+                    console.error('解析项目文件失败:', error);
+                    alert('无法加载项目文件，文件格式不正确！');
+                }
+            };
+            reader.readAsText(file);
+            
+            // 重置文件输入，允许再次选择同一个文件
+            event.target.value = '';
+        }
+
+        // 添加空白行（全局可用）
+        function addBlankRow() {
+            const table = $('#blacklistgrid');
+            const newRow = $('<tr><td><input placeholder="新类别" class="category-input"/></td><td><input placeholder="值1 值2 值3" class="values-input"/></td></tr>');
+            table.append(newRow);
+        }
+
+        // 新增函数：确保表格有足够行数
+        function ensureTableRows(requiredRows) {
+            const currentRows = $('#blacklistgrid tr:not(#Row1)').length;
+            if (currentRows < requiredRows) {
+                const rowsToAdd = requiredRows - currentRows;
+                for (let i = 0; i < rowsToAdd; i++) {
+                    addBlankRow();
+                }
+            }
+        }
+
+        // 显示通知消息
+        function showNotification(message) {
+            const notification = $('<div class="notification">' + message + '</div>');
+            $('body').append(notification);
+            notification.css({
+                'position': 'fixed',
+                'bottom': '20px',
+                'right': '20px',
+                'background': 'var(--success)',
+                'color': 'white',
+                'padding': '10px 20px',
+                'border-radius': 'var(--border-radius)',
+                'box-shadow': 'var(--box-shadow)',
+                'z-index': '1000',
+                'animation': 'fadeIn 0.3s ease-out'
+            });
+            
+            setTimeout(() => {
+                notification.fadeOut(300, () => notification.remove());
+            }, 3000);
+        }
+
+        $(window).on('load', function () {
+
+            $(document).ready(function () {
+                // 绑定项目文件操作
+                $('#saveProject').click(saveProject);
+                $('#loadProject').click(loadProject);
+                $('#projectFile').change(handleFileSelect);
+                
+                $('#clear').click(function () {
+                    var table = $('#blacklistgrid');
+                    // 删除标题行之外的所有行
+                    table.find('tr:gt(0)').remove();
+                    // 添加一行空白行（至少保留一行）
+                    addBlankRow();
+                    // 清除排除规则
+                    $('#excludes').val("");
+                    window.location.hash = "";
+                    // 新增：清除解决方案表
+                    $('#resulttable').empty(); // 清空整个表格
+                    // 重置解决方案计数
+                    $('#nsolutions').html('0 个解决方案');
+                    // 重新加载类别（会重新构建下拉菜单等）
+                    $('#btnXLoad').click();
+                    showNotification('所有内容已清除');
+                });
+                $('#example1').click(function () {
+                    // 确保有足够的行数（示例1需要2行）
+                    ensureTableRows(2);
+
+                    var table = $('#blacklistgrid');
+                    var fields = table.find('input');
+                    clear_inputs(fields);
+                    fields[0].value = "颜色"
+                    fields[1].value = "红 黄 绿"
+                    fields[2].value = "形状"
+                    fields[3].value = "圆形 方形"
+                    var excludes = $('#excludes');
+                    excludes.val("红 圆形 | 错误：看起来有威胁\n绿 方形 | 信息：看起来友好");
+                    $('#btnXLoad').click();
+                });
+
+                $('#example2').click(function () {
+                    // 确保有足够的行数（示例2需要3行）
+                    ensureTableRows(3);
+
+                    var table = $('#blacklistgrid');
+                    var fields = table.find('input');
+                    clear_inputs(fields);
+                    fields[0].value = "颜色"
+                    fields[1].value = "红 黄 绿"
+                    fields[2].value = "形状"
+                    fields[3].value = "圆形 方形"
+                    fields[4].value = "材质"
+                    fields[5].value = "硬 软"
+                    var exclusions = "绿 方形 * | 方形是警告形状\n"
+                    exclusions += "* 圆形 硬 | 丑陋\n";
+                    exclusions += "* 方形 软 | 方形应是硬警告\n";
+                    var excludes = $('#excludes');
+                    excludes.val(exclusions);
+                    $('#btnXLoad').click();
+                });
+
+                $('#example3').click(function () {
+                    // 确保有足够的行数（示例3需要3行）
+                    ensureTableRows(3);
+
+                    var table = $('#blacklistgrid');
+                    var fields = table.find('input');
+                    clear_inputs(fields);
+                    fields[0].value = "类型"
+                    fields[1].value = "纪录片 电影 电视剧"
+                    fields[2].value = "题材"
+                    fields[3].value = "科幻 历史 动作"
+                    fields[4].value = "时长"
+                    fields[5].value = "短(<60分钟) 中(60-120分钟) 长(>120分钟)"
+                    var exclusions = "纪录片 科幻 * | 纪录片不适合科幻题材\n"
+                    exclusions += "电视剧 动作 长 | 电视剧动作片不适合长时长\n";
+                    exclusions += "电影 历史 短 | 历史电影不适合短时长\n";
+                    var excludes = $('#excludes');
+                    excludes.val(exclusions);
+                    $('#btnXLoad').click();
+                });
+
+                $('#btnXLoad').click(function () {
+                    var table = $('#blacklistgrid');
+                    var dropdownA = $('#CatA');
+                    var dropdownB = $('#CatB');
+                    var iinput = 0;
+                    dropdownA.find("option").remove();
+                    dropdownB.find("option").remove();
+                    
+                    console.log("loading combinations ...");
+                    catnames = [];
+                    catvalues = [];
+                    
+                    table.find('input').each(function () {
+                        console.log("  value " + iinput + " " + this.value);
+                        if(iinput % 2 == 0) {
+                            var val = this.value;
+                            if (val == "")
+                                return;
+                            catnames.push(val);
+                            var i = iinput/2;
+                            var newopt = $("<option />").val(i).text(val);
+                            dropdownA.append(newopt);
+                            var newopt = $("<option />").val(i).text(val);
+                            dropdownB.append(newopt);
+                        } else {
+                            var val = this.value;
+                            catvalues.push(val.split(' '));
+                        }
+                        iinput++;
+                    });
+                    dropdownA.prop("selectedIndex", 0);
+                    dropdownB.prop("selectedIndex", 1);
+                    listCombinations();
+                    showNotification('类别已加载');
+                    
+                });
+
+
+                $('#btnXPrev').click(function () {
+                    var dropdownA = $('#CatA');
+                    var dropdownB = $('#CatB');
+                    var indexA = dropdownA.prop("selectedIndex");
+                    var indexB = dropdownB.prop("selectedIndex");
+                    console.log("A:" + indexA + " B:" + indexB);
+                    if (indexA > 0) {
+                        dropdownA.prop("selectedIndex", indexA - 1);
+                        console.log("prev A");
+                    }
+                    if (indexB > 1) {
+                        dropdownB.prop("selectedIndex", indexB - 1);
+                        console.log("prev B");
+                    }
+                    listCombinations();
+                });
+
+                $('#btnXNext').click(function () {
+                    var dropdownA = $('#CatA');
+                    var dropdownB = $('#CatB');
+                    var indexA = dropdownA.prop("selectedIndex");
+                    var indexB = dropdownB.prop("selectedIndex");
+                    console.log("A:" + indexA + " B:" + indexB);
+                    if (indexA < dropdownA.children("option").length - 2) {
+                        dropdownA.prop("selectedIndex", indexA + 1);
+                        console.log("next A, " + dropdownA.length);
+                    }
+                    if (indexB < dropdownB.children("option").length - 1) {
+                        dropdownB.prop("selectedIndex", indexB + 1);
+                        console.log("next B, " + dropdownB.length);
+                    }
+                    listCombinations();
+                });
+
+                $('#CatA').change(listCombinations);
+                $('#CatB').change(listCombinations);
+                
+                $('#btnFinish').click(generateSolutions);
+                
+                $('#btnShareUrl').click(function () {
+                    var url = generateUrl();
+                    window.location.hash = url;
+                    var fullurl = window.location.href;
+                    var urltextfield = $('#shareurl')
+                    urltextfield.val(fullurl);
+                    urltextfield.select();
+                    document.execCommand('copy');
+                    showNotification('分享链接已复制到剪贴板！');
+                });
+                
+                // 绑定切换开关的事件
+                $('#showExclusions').change(toggleExclusions);
+                
+                // 绑定导出按钮事件
+                $('#btnExport').click(exportToExcel);
+                
+                load_from_url();
+                $('#btnXLoad').click();
+            });
+
+         });
+    </script>
+</body>
+</html>
